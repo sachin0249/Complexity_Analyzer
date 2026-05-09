@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complexity Analyzer — Static Analysis Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0b0f;
+  --surface: #111318;
+  --surface2: #181b23;
+  --border: #1f2330;
+  --border2: #252a3a;
+  --accent: #00e5ff;
+  --accent2: #7c3aed;
+  --accent3: #f59e0b;
+  --green: #10b981;
+  --red: #ef4444;
+  --text: #e2e8f0;
+  --text2: #8892aa;
+  --text3: #4a5568;
+  --glow: rgba(0,229,255,0.15);
+}
+
+html { font-size: 14px; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,229,255,0.07) 0%, transparent 70%),
+    linear-gradient(180deg, #0a0b0f 0%, #080a10 100%);
+}
+
+/* Grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrapper { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+
+/* HEADER */
+header {
+  padding: 28px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 20px rgba(0,229,255,0.3);
+}
+
+.logo-text {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.logo-sub {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--text2);
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(16,185,129,0.07);
+}
+
+.badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  50% { opacity:0.7; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
+}
+
+/* MAIN LAYOUT */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 20px;
+  padding: 24px 0 40px;
+  min-height: calc(100vh - 100px);
+}
+
+/* EDITOR PANEL */
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Language selector */
+.lang-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.lang-tab {
+  padding: 5px 14px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+
+.lang-tab.active {
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+}
+
+.lang-tab:hover:not(.active) {
+  background: var(--border2);
+  color: var(--text);
+}
+
+/* Code editor */
+.editor-wrap {
+  position: relative;
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  transition: border-color 0.2s;
+}
+
+.editor-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+}
+
+.line-numbers {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 50px;
+  padding: 16px 8px;
+  text-align: right;
+  color: var(--text3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  user-select: none;
+  border-right: 1px solid var(--border);
+  background: rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+#code-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  padding: 16px 16px 16px 66px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+
+/* Analyze button */
+.btn-analyze {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, var(--accent), #00b4d8);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(0,229,255,0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-analyze::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.btn-analyze:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(0,229,255,0.4);
+}
+
+.btn-analyze:hover::before { opacity: 1; }
+.btn-analyze:active { transform: translateY(0); }
+
+.btn-analyze svg { width: 16px; height: 16px; }
+
+/* Examples */
+.examples-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.example-chip {
+  padding: 5px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.example-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,229,255,0.05);
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* RESULTS PANEL */
+.results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Complexity cards */
+.complexity-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.complexity-card.highlighted {
+  border-color: var(--accent);
+  box-shadow: 0 0 30px rgba(0,229,255,0.1), inset 0 0 30px rgba(0,229,255,0.03);
+}
+
+.card-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 30px rgba(0,229,255,0.4);
+  min-height: 2.5rem;
+  transition: all 0.3s;
+}
+
+.card-value.space { color: var(--accent3); text-shadow: 0 0 30px rgba(245,158,11,0.3); }
+
+.card-decoration {
+  position: absolute;
+  right: 16px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 3rem;
+  opacity: 0.06;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+/* Pattern badge */
+.pattern-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.pattern-value {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.pattern-tag {
+  padding: 4px 12px;
+  background: rgba(124,58,237,0.15);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 20px;
+  color: #a78bfa;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+/* Explanation */
+.explanation-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  flex: 1;
+}
+
+.explanation-text {
+  color: var(--text2);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  min-height: 60px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Analysis Steps */
+.steps-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.steps-list::-webkit-scrollbar { width: 4px; }
+.steps-list::-webkit-scrollbar-track { background: transparent; }
+.steps-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.step-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.3s;
+}
+
+.step-item.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.step-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.step-dot.warn { background: var(--accent3); }
+.step-dot.info { background: var(--accent2); }
+
+.step-text { color: var(--text2); }
+.step-text em { color: var(--text); font-style: normal; }
+
+/* Complexity scale visualization */
+.scale-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.scale-bar-wrap {
+  margin-top: 12px;
+}
+
+.scale-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text3);
+}
+
+.scale-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #10b981, #00e5ff, #f59e0b, #ef4444, #7c3aed);
+  position: relative;
+}
+
+.scale-marker {
+  position: absolute;
+  top: -4px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--accent);
+  transform: translateX(-50%);
+  transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 10px rgba(0,229,255,0.5);
+}
+
+.scale-classes {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text3);
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  gap: 12px;
+  opacity: 0.5;
+}
+
+.empty-icon { font-size: 2.5rem; }
+.empty-text { color: var(--text2); font-size: 0.8rem; line-height: 1.5; font-family: 'JetBrains Mono', monospace; }
+
+/* Analyze animation */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-animate { animation: fadeSlideIn 0.3s ease forwards; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  .results-panel { order: -1; }
+}
+
+/* scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo-text">ComplexiScan</div>
+        <div class="logo-sub">Static Analysis Engine v1.0</div>
+      </div>
+    </div>
+    <div class="badge">Fully Offline · No AI · Deterministic</div>
+  </header>
+
+  <div class="main">
+    <!-- LEFT: Editor -->
+    <div class="editor-panel">
+      <div class="panel-header">
+        <div class="panel-label">Source Code</div>
+        <div class="lang-tabs">
+          <button class="lang-tab active" data-lang="javascript">JS</button>
+          <button class="lang-tab" data-lang="python">Python</button>
+          <button class="lang-tab" data-lang="java">Java</button>
+          <button class="lang-tab" data-lang="cpp">C++</button>
+        </div>
+      </div>
+
+      <div class="editor-wrap">
+        <div class="line-numbers" id="line-nums">1</div>
+        <textarea id="code-editor" spellcheck="false" placeholder="// Paste your code here..."></textarea>
+      </div>
+
+      <div class="action-row">
+        <div class="examples-row">
+          <span class="panel-label" style="margin-right:4px">Examples:</span>
+          <button class="example-chip" data-example="sliding-window">Sliding Window</button>
+          <button class="example-chip" data-example="bfs">BFS</button>
+          <button class="example-chip" data-example="merge-sort">Merge Sort</button>
+          <button class="example-chip" data-example="fibonacci">Fibonacci</button>
+          <button class="example-chip" data-example="nested">Nested Loops</button>
+          <button class="example-chip" data-example="binary-search">Binary Search</button>
+        </div>
+        <button class="btn-analyze" id="analyze-btn">
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 8L7 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Analyze
+        </button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div class="results-panel" id="results-panel">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">🔬</div>
+        <div class="empty-text">Paste your code and click Analyze.<br>The engine will compute complexity using<br>AST parsing + rule-based analysis.</div>
+      </div>
+
+      <div id="result-content" style="display:none; display:flex; flex-direction:column; gap:14px;">
+        <!-- Time Complexity -->
+        <div class="complexity-card highlighted result-animate">
+          <div class="card-decoration" id="deco-time">O</div>
+          <div class="card-label">Time Complexity</div>
+          <div class="card-value" id="time-complexity">—</div>
+        </div>
+
+        <!-- Space Complexity -->
+        <div class="complexity-card result-animate" style="animation-delay:0.05s">
+          <div class="card-decoration" id="deco-space">S</div>
+          <div class="card-label">Space Complexity</div>
+          <div class="card-value space" id="space-complexity">—</div>
+        </div>
+
+        <!-- Pattern -->
+        <div class="pattern-card result-animate" style="animation-delay:0.1s">
+          <div class="card-label">Detected Pattern(s)</div>
+          <div class="pattern-value" id="pattern-value"></div>
+        </div>
+
+        <!-- Scale -->
+        <div class="scale-card result-animate" style="animation-delay:0.12s">
+          <div class="card-label">Complexity Scale</div>
+          <div class="scale-bar-wrap">
+            <div class="scale-labels"><span>Best</span><span>Worst</span></div>
+            <div class="scale-bar">
+              <div class="scale-marker" id="scale-marker" style="left:10%"></div>
+            </div>
+            <div class="scale-classes">
+              <span>O(1)</span><span>O(log n)</span><span>O(n)</span><span>O(n log n)</span><span>O(n²)</span><span>O(2ⁿ)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explanation -->
+        <div class="explanation-card result-animate" style="animation-delay:0.15s">
+          <div class="card-label">Explanation</div>
+          <div class="explanation-text" id="explanation-text">—</div>
+        </div>
+
+        <!-- Steps -->
+        <div class="steps-card result-animate" style="animation-delay:0.2s">
+          <div class="card-label" style="margin-bottom:12px">Analysis Trace</div>
+          <div class="steps-list" id="steps-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// COMPLEXITY ANALYSIS ENGINE
+// Rule-based, deterministic, AST-inspired static analyzer
+// ============================================================
+
+'use strict';
+
+// ---- EXAMPLE CODE SNIPPETS ----
+const EXAMPLES = {
+  'sliding-window': `function maxSumSubarray(arr, k) {
+  let maxSum = 0, windowSum = 0;
+  const freq = new Map();
+
+  for (let i = 0; i < k; i++) {
+    windowSum += arr[i];
+    freq.set(arr[i], (freq.get(arr[i]) || 0) + 1);
+  }
+  maxSum = windowSum;
+
+  for (let i = k; i < arr.length; i++) {
+    windowSum += arr[i] - arr[i - k];
+    freq.set(arr[i], (freq.get(arr[i]) || 0) + 1);
+    let old = arr[i - k];
+    if (freq.get(old) === 1) freq.delete(old);
+    else freq.set(old, freq.get(old) - 1);
+    maxSum = Math.max(maxSum, windowSum);
+  }
+  return maxSum;
+}`,
+
+  'bfs': `function bfs(graph, start) {
+  const visited = new Set();
+  const queue = [start];
+  visited.add(start);
+  const result = [];
+
+  while (queue.length > 0) {
+    const node = queue.shift();
+    result.push(node);
+    for (const neighbor of graph[node]) {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+  }
+  return result;
+}`,
+
+  'merge-sort': `function mergeSort(arr) {
+  if (arr.length <= 1) return arr;
+
+  const mid = Math.floor(arr.length / 2);
+  const left = mergeSort(arr.slice(0, mid));
+  const right = mergeSort(arr.slice(mid));
+
+  return merge(left, right);
+}
+
+function merge(left, right) {
+  const result = [];
+  let i = 0, j = 0;
+  while (i < left.length && j < right.length) {
+    if (left[i] <= right[j]) result.push(left[i++]);
+    else result.push(right[j++]);
+  }
+  return result.concat(left.slice(i)).concat(right.slice(j));
+}`,
+
+  'fibonacci': `function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}`,
+
+  'nested': `function matrixMultiply(A, B) {
+  const n = A.length;
+  const result = [];
+  for (let i = 0; i < n; i++) {
+    result[i] = [];
+    for (let j = 0; j < n; j++) {
+      result[i][j] = 0;
+      for (let k = 0; k < n; k++) {
+        result[i][j] += A[i][k] * B[k][j];
+      }
+    }
+  }
+  return result;
+}`,
+
+  'binary-search': `function binarySearch(arr, target) {
+  let left = 0, right = arr.length - 1;
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    if (arr[mid] === target) return mid;
+    else if (arr[mid] < target) left = mid + 1;
+    else right = mid - 1;
+  }
+  return -1;
+}`
+};
+
+// ---- TOKENIZER ----
+// Light tokenizer to aid pattern detection
+function tokenize(code) {
+  // Remove single-line comments
+  let c = code.replace(/\/\/[^\n]*/g, ' ');
+  // Remove multi-line comments
+  c = c.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  // Remove Python # comments
+  c = c.replace(/#[^\n]*/g, ' ');
+  return c;
+}
+
+// ---- AST-INSPIRED STRUCTURAL PARSER ----
+// Extracts structural elements without a full AST
+class CodeStructure {
+  constructor(code, lang) {
+    this.code = tokenize(code);
+    this.raw = code;
+    this.lang = lang;
+    this.lines = this.code.split('\n');
+  }
+
+  // Count loop nesting depth (tracks { } or indentation)
+  getLoopNestingDepth() {
+    const loopKeywords = /\b(for|while|forEach|map|filter|reduce|do)\b/;
+    let maxDepth = 0;
+    let stack = [];
+    let depth = 0;
+
+    for (const line of this.lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      // Count opening braces / colons (Python)
+      const opens = (line.match(/\{/g) || []).length;
+      const closes = (line.match(/\}/g) || []).length;
+
+      if (loopKeywords.test(trimmed)) {
+        depth++;
+        stack.push(depth);
+        maxDepth = Math.max(maxDepth, depth);
+      }
+
+      if (closes > 0 && stack.length > 0) {
+        for (let i = 0; i < closes; i++) {
+          if (stack.length > 0) {
+            stack.pop();
+            depth = Math.max(0, depth - 1);
+          }
+        }
+      }
+    }
+
+    // Also detect Python-style via indentation
+    if (this.lang === 'python') {
+      return this._pythonLoopDepth();
+    }
+
+    return maxDepth;
+  }
+
+  _pythonLoopDepth() {
+    let maxDepth = 0;
+    let depth = 0;
+    const loopRe = /^\s*(for|while)\s/;
+    const indentStack = [0];
+
+    for (const line of this.lines) {
+      if (!line.trim()) continue;
+      const indent = line.match(/^(\s*)/)[1].length;
+
+      // Pop stack while indent <= top
+      while (indentStack.length > 1 && indent <= indentStack[indentStack.length-1]) {
+        indentStack.pop();
+        depth = Math.max(0, depth - 1);
+      }
+
+      if (loopRe.test(line)) {
+        depth++;
+        indentStack.push(indent);
+        maxDepth = Math.max(maxDepth, depth);
+      }
+    }
+
+    return maxDepth;
+  }
+
+  hasLogarithmicLoop() {
+    // i *= 2, i /= 2, i >>= 1, i = i * 2, right = mid - 1 (binary search pattern)
+    return /i\s*[\*\/]\s*=\s*2|i\s*>>=\s*1|i\s*=\s*i\s*[\*\/]\s*2|right\s*=\s*mid|left\s*=\s*mid/i.test(this.code);
+  }
+
+  hasOuterLoop() {
+    const loopCount = (this.code.match(/\b(for|while|forEach)\b/g) || []).length;
+    return loopCount > 0;
+  }
+
+  detectRecursion() {
+    // Find function names and check if they call themselves
+    const funcNames = this._extractFunctionNames();
+    const results = [];
+
+    for (const fn of funcNames) {
+      // Check how many times this function is called within the code
+      const callPattern = new RegExp(`\\b${fn}\\s*\\(`, 'g');
+      const calls = (this.code.match(callPattern) || []).length;
+      // If called more than once (definition + at least one recursive call)
+      if (calls >= 2) {
+        // Detect call count per call (T(n-1)+T(n-2) style)
+        const callsInBody = this._countCallsInBody(fn);
+        results.push({ name: fn, callCount: callsInBody });
+      }
+    }
+    return results;
+  }
+
+  _extractFunctionNames() {
+    const patterns = [
+      /function\s+(\w+)\s*\(/g,         // JS function declaration
+      /(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\(.*?\)\s*=>)/g, // JS arrow/func expr
+      /def\s+(\w+)\s*\(/g,              // Python
+      /\b(?:void|int|long|double|string|auto|bool)\s+(\w+)\s*\(/g,  // Java/C++
+      /(\w+)\s*::\s*(\w+)\s*\(/g,       // C++ methods
+    ];
+    const names = new Set();
+    for (const p of patterns) {
+      let m;
+      while ((m = p.exec(this.code)) !== null) {
+        const name = m[2] || m[1];
+        if (name && name.length > 1 && !['if','for','while','switch','return'].includes(name)) {
+          names.add(name);
+        }
+      }
+    }
+    return [...names];
+  }
+
+  _countCallsInBody(fnName) {
+    // Count recursive calls in the body of the function
+    const re = new RegExp(`\\b${fnName}\\s*\\(`, 'g');
+    const matches = this.code.match(re) || [];
+    // Subtract 1 for the definition itself
+    return Math.max(0, matches.length - 1);
+  }
+
+  detectDivideAndConquer() {
+    // T(n/2): mid computation + recursive calls
+    const hasMid = /\bmid\b|\bm\s*=\s*\(|\blen\s*\/\s*2|\bsize\s*\/\s*2|Math\.floor.*\/\s*2/i.test(this.code);
+    const recursions = this.detectRecursion();
+    return hasMid && recursions.length > 0;
+  }
+
+  detectBFS() {
+    const hasQueue = /\bqueue\b|\bdeque\b|\bQueue\b|\bArrayDeque\b/i.test(this.code);
+    const hasVisited = /\bvisited\b|\bseen\b/i.test(this.code);
+    const hasWhileOrLoop = /\bwhile\b|\bfor\b/i.test(this.code);
+    return hasQueue && hasVisited && hasWhileOrLoop;
+  }
+
+  detectDFS() {
+    const hasStack = /\bstack\b|\bStack\b/i.test(this.code);
+    const hasRecursion = this.detectRecursion().length > 0;
+    const hasVisited = /\bvisited\b|\bseen\b/i.test(this.code);
+    const hasGraph = /\bgraph\b|\badjacen|\bneighbor|\bedge\b/i.test(this.code);
+    return (hasStack || hasRecursion) && hasVisited && hasGraph;
+  }
+
+  detectSlidingWindow() {
+    const hasWindow = /\bwindow\b|\bslid/i.test(this.code);
+    const hasTwoPtr = /\bleft\b.*\bright\b|\bi\b.*\bj\b/i.test(this.code);
+    const hasQueue = /\bqueue\b|\bdeque\b/i.test(this.code);
+    const hasFreq = /\bfreq\b|\bcount\b|\bmap\b|\bMap\b|\bdict\b/i.test(this.code);
+    const hasSingleLoop = (this.code.match(/\b(for|while)\b/g) || []).length <= 2;
+    return (hasWindow || hasTwoPtr || (hasQueue && hasFreq)) && hasSingleLoop;
+  }
+
+  detectTwoPointer() {
+    const hasLeftRight = /\bleft\s*=\s*0.*right\s*=|\blo\s*=\s*0.*hi\s*=|\bi\s*=\s*0.*j\s*=/i.test(this.code);
+    const hasSingleLoop = (this.code.match(/\b(for|while)\b/g) || []).length <= 2;
+    return hasLeftRight && hasSingleLoop;
+  }
+
+  detectBacktracking() {
+    const hasRecursion = this.detectRecursion().length > 0;
+    const hasBacktrack = /\bbacktrack\b|\bback\b|\bundle\b|\brestore\b|\bremove\b.*recursive|pop\b.*recursive/i.test(this.code);
+    const hasChoiceArray = /\bchoices\b|\bpath\b|\bresult\.push\b|\bres\.push/i.test(this.code);
+    return hasRecursion && (hasBacktrack || hasChoiceArray);
+  }
+
+  detectDP() {
+    const hasMemo = /\bmemo\b|\bcache\b|\bdp\b|\btable\b/i.test(this.code);
+    const hasRecursion = this.detectRecursion().length > 0;
+    const hasArray = /\[\s*\]|\bnew Array\b|\bdp\[/i.test(this.code);
+    return hasMemo && (hasRecursion || hasArray);
+  }
+
+  detectBinarySearch() {
+    return (
+      /\bleft\b.*\bright\b.*\bmid\b|\blo\b.*\bhi\b.*\bmid\b/i.test(this.code) &&
+      /\bwhile\b/i.test(this.code) &&
+      /mid\s*[\+\-]\s*1/i.test(this.code)
+    );
+  }
+
+  getAmortizedQueueFact() {
+    // If queue/deque with each-element-once pattern
+    const hasQueue = /\bqueue\b|\bdeque\b|\bQueue\b/i.test(this.code);
+    const hasAdd = /push|enqueue|add\(|offer\(/i.test(this.code);
+    const hasRemove = /shift\(\)|pop\(\)|poll\(\)|remove\(\)|dequeue/i.test(this.code);
+    return hasQueue && hasAdd && hasRemove;
+  }
+
+  getDataStructures() {
+    const ds = [];
+    if (/\bMap\b|\bHashMap\b|\bdict\b|\bunordered_map\b|\bmap\b/i.test(this.code)) ds.push('HashMap');
+    if (/\bSet\b|\bHashSet\b|\bunordered_set\b|\bset\b/i.test(this.code)) ds.push('Set');
+    if (/\bqueue\b|\bQueue\b|\bdeque\b|\bArrayDeque\b/i.test(this.code)) ds.push('Queue');
+    if (/\bstack\b|\bStack\b/i.test(this.code)) ds.push('Stack');
+    if (/\btree\b|\bTree\b|\bBST\b|\broot\b|\bnode\b.*\bleft\b/i.test(this.code)) ds.push('Tree');
+    if (/\bgraph\b|\bGraph\b|\badjacen/i.test(this.code)) ds.push('Graph');
+    if (/\bheap\b|\bHeap\b|\bPriorityQueue\b/i.test(this.code)) ds.push('Heap');
+    return ds;
+  }
+
+  countFunctions() {
+    const fns = this._extractFunctionNames();
+    return fns.length;
+  }
+
+  hasVisitedTracking() {
+    return /\bvisited\b|\bseen\b/i.test(this.code);
+  }
+}
+
+// ---- COMPLEXITY RULES ENGINE ----
+const COMPLEXITY_ORDER = ['O(1)', 'O(log n)', 'O(√n)', 'O(n)', 'O(n log n)', 'O(n²)', 'O(n³)', 'O(2ⁿ)', 'O(n!)'];
+
+function complexityRank(c) {
+  return COMPLEXITY_ORDER.indexOf(c);
+}
+
+function maxComplexity(a, b) {
+  return complexityRank(a) >= complexityRank(b) ? a : b;
+}
+
+// Scale position (0-100) for visualization
+function complexityScale(c) {
+  const positions = {
+    'O(1)': 3,
+    'O(log n)': 14,
+    'O(√n)': 22,
+    'O(n)': 35,
+    'O(n log n)': 52,
+    'O(n²)': 68,
+    'O(n³)': 80,
+    'O(2ⁿ)': 90,
+    'O(n!)': 97,
+  };
+  return positions[c] ?? 50;
+}
+
+function analyzeCode(code, lang) {
+  const struct = new CodeStructure(code, lang);
+  const steps = [];
+  const patterns = [];
+  let timeComplexity = 'O(1)';
+  let spaceComplexity = 'O(1)';
+  let explanation = '';
+
+  // ---- STEP 1: Detect recursion ----
+  const recursions = struct.detectRecursion();
+  let isRecursive = recursions.length > 0;
+
+  if (isRecursive) {
+    steps.push({ type: 'info', text: `Recursive function detected: <em>${recursions.map(r=>r.name).join(', ')}</em>` });
+  }
+
+  // ---- STEP 2: Analyze recursive patterns ----
+  if (isRecursive) {
+    const rec = recursions[0];
+    const callCount = rec.callCount;
+    const isDivideConquer = struct.detectDivideAndConquer();
+    const isBacktrack = struct.detectBacktracking();
+
+    if (isDivideConquer) {
+      // T(n) = k*T(n/2) + O(n) or O(1)
+      // Check if merge step is linear (merge sort) or O(1) (binary search tree)
+      const hasMergeWork = /merge|concat|join|slice/i.test(struct.code);
+      if (hasMergeWork && callCount >= 2) {
+        timeComplexity = 'O(n log n)';
+        spaceComplexity = 'O(n)';
+        patterns.push('Divide & Conquer');
+        steps.push({ type: 'info', text: `Divide & Conquer detected: T(n) = ${callCount}T(n/2) + O(n) → <em>O(n log n)</em> by Master Theorem` });
+        explanation = `The function splits input in half each call (divide) and does O(n) work combining results (conquer). Master Theorem: T(n) = ${callCount}T(n/2) + O(n) → O(n log n).`;
+      } else if (callCount === 1) {
+        timeComplexity = 'O(log n)';
+        spaceComplexity = 'O(log n)';
+        patterns.push('Binary Search / Divide & Conquer');
+        steps.push({ type: 'info', text: `Single recursive call with half-size input: T(n) = T(n/2) + O(1) → <em>O(log n)</em>` });
+        explanation = 'Each recursive call halves the input. T(n) = T(n/2) + O(1) resolves to O(log n) by Master Theorem.';
+      } else {
+        timeComplexity = 'O(n log n)';
+        spaceComplexity = 'O(log n)';
+        patterns.push('Divide & Conquer');
+        steps.push({ type: 'info', text: `Divide & Conquer with ${callCount} branches → <em>O(n log n)</em>` });
+        explanation = `Divide and conquer with ${callCount} recursive sub-calls and logarithmic depth yields O(n log n).`;
+      }
+    } else if (isBacktrack) {
+      timeComplexity = 'O(2ⁿ)';
+      spaceComplexity = 'O(n)';
+      patterns.push('Backtracking');
+      steps.push({ type: 'warn', text: `Backtracking pattern detected: exponential branching → <em>O(2ⁿ)</em>` });
+      explanation = 'Backtracking explores all combinations. Without memoization, the complexity is exponential.';
+    } else if (callCount >= 2) {
+      // T(n) = k*T(n-1) + O(1) → O(k^n)
+      if (callCount === 2) {
+        timeComplexity = 'O(2ⁿ)';
+        spaceComplexity = 'O(n)';
+        patterns.push('Exponential Recursion');
+        steps.push({ type: 'warn', text: `Binary recursion T(n) = 2T(n−1) + O(1) detected → <em>O(2ⁿ)</em>` });
+        explanation = 'Two recursive calls on size n−1 each. T(n) = 2T(n−1) + O(1) = O(2ⁿ). Classic Fibonacci-style recursion without memoization.';
+      } else {
+        timeComplexity = 'O(2ⁿ)';
+        spaceComplexity = 'O(n)';
+        patterns.push('Exponential Recursion');
+        steps.push({ type: 'warn', text: `${callCount} recursive calls detected → exponential <em>O(2ⁿ)</em>` });
+        explanation = `${callCount} recursive sub-calls per level results in exponential time complexity.`;
+      }
+    } else {
+      // Single linear recursion T(n) = T(n-1) + O(1)
+      timeComplexity = 'O(n)';
+      spaceComplexity = 'O(n)';
+      patterns.push('Linear Recursion');
+      steps.push({ type: 'info', text: `Linear recursion T(n) = T(n−1) + O(1) → <em>O(n)</em>` });
+      explanation = 'Single recursive call reducing input by 1 each time. T(n) = T(n−1) + O(1) → O(n).';
+    }
+  }
+
+  // ---- STEP 3: Check for DP (overrides pure recursion) ----
+  if (struct.detectDP()) {
+    patterns.push('Dynamic Programming');
+    steps.push({ type: 'info', text: `Memoization/DP table detected — overlapping subproblems eliminated` });
+    if (complexityRank(timeComplexity) >= complexityRank('O(n²)')) {
+      // DP typically reduces exponential to polynomial
+      timeComplexity = 'O(n²)';
+      spaceComplexity = 'O(n)';
+      steps.push({ type: 'info', text: `DP reduces exponential to polynomial → <em>O(n²)</em> (estimated)` });
+    }
+  }
+
+  // ---- STEP 4: Loop analysis ----
+  const nestingDepth = struct.getLoopNestingDepth();
+  const hasLogLoop = struct.hasLogarithmicLoop();
+  const hasBinarySearch = struct.detectBinarySearch();
+
+  if (nestingDepth > 0) {
+    steps.push({ type: 'info', text: `Loop nesting depth: <em>${nestingDepth}</em>` });
+  }
+
+  if (hasBinarySearch) {
+    const bsComplexity = 'O(log n)';
+    timeComplexity = isRecursive ? timeComplexity : maxComplexity(timeComplexity, bsComplexity);
+    patterns.push('Binary Search');
+    steps.push({ type: 'info', text: `Binary search pattern: left/right/mid with halving → <em>O(log n)</em>` });
+    if (!isRecursive) {
+      explanation = 'Binary search halves the search space each iteration. O(log n) iterations total.';
+    }
+  } else if (hasLogLoop && !hasBinarySearch) {
+    const loopComplexity = nestingDepth > 1 ? 'O(n log n)' : 'O(log n)';
+    timeComplexity = maxComplexity(timeComplexity, loopComplexity);
+    steps.push({ type: 'info', text: `Geometric loop step detected (×2 or ÷2) → <em>${loopComplexity}</em>` });
+    if (!isRecursive) explanation = `Loop variable doubles/halves each iteration, giving logarithmic iterations.`;
+  } else if (nestingDepth === 1 && !isRecursive) {
+    timeComplexity = maxComplexity(timeComplexity, 'O(n)');
+    steps.push({ type: 'info', text: `Single loop → <em>O(n)</em>` });
+  } else if (nestingDepth === 2 && !isRecursive) {
+    timeComplexity = maxComplexity(timeComplexity, 'O(n²)');
+    steps.push({ type: 'warn', text: `Two nested loops → <em>O(n²)</em>` });
+  } else if (nestingDepth === 3 && !isRecursive) {
+    timeComplexity = maxComplexity(timeComplexity, 'O(n³)');
+    steps.push({ type: 'warn', text: `Three nested loops → <em>O(n³)</em>` });
+  } else if (nestingDepth > 3 && !isRecursive) {
+    timeComplexity = 'O(n³)';
+    steps.push({ type: 'warn', text: `Deep nesting (${nestingDepth} levels) → <em>O(n³)+</em>` });
+  }
+
+  // ---- STEP 5: Pattern overrides for known O(n) amortized patterns ----
+  const isBFS = struct.detectBFS();
+  const isDFS = struct.detectDFS();
+  const isSlidingWindow = struct.detectSlidingWindow();
+  const isTwoPointer = struct.detectTwoPointer();
+  const amortized = struct.getAmortizedQueueFact();
+
+  if (isBFS) {
+    patterns.push('BFS');
+    steps.push({ type: 'info', text: `BFS detected: visited tracking + queue → <em>O(V + E)</em>` });
+    if (complexityRank(timeComplexity) < complexityRank('O(n)')) {
+      timeComplexity = 'O(n)';
+    }
+    // If we had assumed O(n²) from nested loops, BFS overrides because visited check prevents revisiting
+    if (struct.hasVisitedTracking() && complexityRank(timeComplexity) <= complexityRank('O(n²)')) {
+      timeComplexity = 'O(n)';
+      steps.push({ type: 'info', text: `Visited tracking ensures each node processed once → amortized <em>O(n)</em>` });
+    }
+    spaceComplexity = 'O(n)';
+    if (!explanation) explanation = 'BFS visits each vertex and edge once using a queue. With visited tracking, time is O(V + E) which is linear in graph size.';
+  }
+
+  if (isDFS && !isBFS) {
+    patterns.push('DFS');
+    steps.push({ type: 'info', text: `DFS detected: visited tracking + recursion/stack → <em>O(V + E)</em>` });
+    if (struct.hasVisitedTracking()) {
+      timeComplexity = 'O(n)';
+      steps.push({ type: 'info', text: `Visited set prevents revisiting → amortized <em>O(V+E)</em>` });
+    }
+    spaceComplexity = 'O(n)';
+    if (!explanation) explanation = 'DFS with visited set visits each node once. Total work is O(V + E).';
+  }
+
+  if (isSlidingWindow && !isBFS && !isDFS) {
+    patterns.push('Sliding Window');
+    const hasFreqMap = /\bMap\b|\bfreq\b|\bcount\b|\bdict\b/i.test(struct.code);
+    if (hasFreqMap) patterns.push('Frequency Map');
+    // Amortized: each element enters and leaves window once
+    if (amortized || nestingDepth <= 1) {
+      timeComplexity = 'O(n)';
+      steps.push({ type: 'info', text: `Sliding window: each element enters/leaves window once → amortized <em>O(n)</em>` });
+      if (!explanation) explanation = 'Sliding window pattern — each element is added and removed from the window at most once. Despite the apparent nested structure, this is amortized O(n).';
+    }
+    spaceComplexity = hasFreqMap ? 'O(k)' : 'O(1)';
+  }
+
+  if (isTwoPointer && !isSlidingWindow && !isBFS) {
+    patterns.push('Two Pointer');
+    timeComplexity = maxComplexity(timeComplexity, 'O(n)');
+    spaceComplexity = 'O(1)';
+    steps.push({ type: 'info', text: `Two-pointer technique: pointers move toward each other → <em>O(n)</em>` });
+    if (!explanation) explanation = 'Two pointers traversing from both ends meet in the middle. Total work is O(n).';
+  }
+
+  // ---- STEP 6: Amortized queue/deque analysis ----
+  if (amortized && !isSlidingWindow && !isBFS) {
+    steps.push({ type: 'info', text: `Amortized analysis: each element inserted and removed from queue once → <em>O(n)</em>` });
+    // Only override if currently O(n²) was assumed due to loop structure
+    if (timeComplexity === 'O(n²)' && nestingDepth <= 2) {
+      timeComplexity = 'O(n)';
+      patterns.push('Queue / Amortized O(n)');
+      steps.push({ type: 'info', text: `Overriding O(n²) → <em>O(n)</em> due to amortized queue operations` });
+      if (!explanation) explanation = 'Even though there are nested loops, each element is enqueued and dequeued at most once. Amortized analysis yields O(n) total work.';
+    }
+  }
+
+  // ---- STEP 7: Data structures → space complexity ----
+  const ds = struct.getDataStructures();
+  if (ds.length > 0) {
+    steps.push({ type: 'info', text: `Data structures detected: <em>${ds.join(', ')}</em>` });
+    if (ds.includes('HashMap') || ds.includes('Set') || ds.includes('Queue') || ds.includes('Stack')) {
+      if (spaceComplexity === 'O(1)') spaceComplexity = 'O(n)';
+    }
+    if (ds.includes('Graph') || ds.includes('Tree')) {
+      spaceComplexity = 'O(n)';
+    }
+  }
+
+  // ---- STEP 8: Fallback explanation ----
+  if (!explanation) {
+    if (timeComplexity === 'O(1)') {
+      explanation = 'No loops or recursion detected. The function runs in constant time.';
+      steps.push({ type: 'info', text: `No loops or recursion → <em>O(1)</em>` });
+    } else if (timeComplexity === 'O(n log n)') {
+      explanation = `Combination of linear traversal and logarithmic operation yields O(n log n).`;
+    } else if (timeComplexity === 'O(n²)') {
+      explanation = `Nested loops over the input result in quadratic time complexity.`;
+    } else if (timeComplexity === 'O(n)') {
+      explanation = `Linear time — each element processed a constant number of times.`;
+    }
+  }
+
+  // Deduplicate patterns
+  const uniquePatterns = [...new Set(patterns)];
+  if (uniquePatterns.length === 0) uniquePatterns.push('General');
+
+  return {
+    time_complexity: timeComplexity,
+    space_complexity: spaceComplexity,
+    patterns: uniquePatterns,
+    explanation,
+    steps,
+  };
+}
+
+// ---- UI LOGIC ----
+const editor = document.getElementById('code-editor');
+const lineNums = document.getElementById('line-nums');
+const analyzeBtn = document.getElementById('analyze-btn');
+const emptyState = document.getElementById('empty-state');
+const resultContent = document.getElementById('result-content');
+const timeEl = document.getElementById('time-complexity');
+const spaceEl = document.getElementById('space-complexity');
+const patternEl = document.getElementById('pattern-value');
+const explanationEl = document.getElementById('explanation-text');
+const stepsList = document.getElementById('steps-list');
+const scaleMarker = document.getElementById('scale-marker');
+
+let currentLang = 'javascript';
+
+// Line numbers
+function updateLineNumbers() {
+  const lines = editor.value.split('\n').length;
+  lineNums.textContent = Array.from({length: lines}, (_, i) => i + 1).join('\n');
+}
+
+editor.addEventListener('input', updateLineNumbers);
+editor.addEventListener('scroll', () => {
+  lineNums.scrollTop = editor.scrollTop;
+});
+
+// Tab key support
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = editor.selectionStart;
+    editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(editor.selectionEnd);
+    editor.selectionStart = editor.selectionEnd = s + 2;
+    updateLineNumbers();
+  }
+});
+
+// Language tabs
+document.querySelectorAll('.lang-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentLang = tab.dataset.lang;
+  });
+});
+
+// Example chips
+document.querySelectorAll('.example-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const key = chip.dataset.example;
+    if (EXAMPLES[key]) {
+      editor.value = EXAMPLES[key];
+      updateLineNumbers();
+      // Set JS tab active
+      document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('[data-lang="javascript"]').classList.add('active');
+      currentLang = 'javascript';
+    }
+  });
+});
+
+// Analyze button
+analyzeBtn.addEventListener('click', () => {
+  const code = editor.value.trim();
+  if (!code) return;
+
+  // Animate button
+  analyzeBtn.style.transform = 'scale(0.97)';
+  setTimeout(() => analyzeBtn.style.transform = '', 150);
+
+  const result = analyzeCode(code, currentLang);
+  renderResult(result);
+});
+
+function renderResult(result) {
+  emptyState.style.display = 'none';
+  resultContent.style.display = 'flex';
+
+  // Animate values
+  timeEl.textContent = result.time_complexity;
+  spaceEl.textContent = result.space_complexity;
+  explanationEl.textContent = result.explanation;
+
+  // Patterns
+  patternEl.innerHTML = result.patterns.map(p =>
+    `<span class="pattern-tag">${p}</span>`
+  ).join('');
+
+  // Scale marker
+  const pos = complexityScale(result.time_complexity);
+  scaleMarker.style.left = pos + '%';
+
+  // Steps
+  stepsList.innerHTML = '';
+  result.steps.forEach((step, i) => {
+    const el = document.createElement('div');
+    el.className = 'step-item';
+    el.innerHTML = `
+      <div class="step-dot ${step.type}"></div>
+      <div class="step-text">${step.text}</div>
+    `;
+    stepsList.appendChild(el);
+    setTimeout(() => el.classList.add('show'), i * 60);
+  });
+
+  // Animate all cards
+  document.querySelectorAll('.result-animate').forEach(el => {
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+  });
+}
+
+// Initialize
+updateLineNumbers();
+</script>
+</body>
+</html>
