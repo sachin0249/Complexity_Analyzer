@@ -1,316 +1,284 @@
-# ⚡ ComplexiScan — Deterministic Time Complexity Analyzer
+# Complexity Analyzer
 
-> A fully offline static analysis engine that estimates algorithmic **Time & Space Complexity** using deterministic rule-based analysis.
+A futuristic **static code complexity analyzer** built with pure HTML, CSS, and JavaScript.
+It detects algorithmic patterns and estimates:
 
-ComplexiScan is a lightweight browser-based complexity analyzer inspired by compiler analysis systems. It performs structural parsing and symbolic traversal to detect algorithmic patterns without relying on AI or cloud APIs.
+* **Time Complexity**
+* **Space Complexity**
+* **Recurrence Relations**
+* **Loop Nesting**
+* **Recursion Types**
+* and more...
 
----
-
-# 🚀 Features
-
-## ✅ Deterministic Static Analysis
-- No AI dependency
-- No probabilistic guessing
-- Rule-based complexity inference
-- Transparent analysis trace
-
----
-
-## 🌐 Multi-Language Support
-Supports:
-- JavaScript
-- Python
-- Java
-- C++
+🌐 **Live Demo:**
+[Complexity Analyzer Live Demo](https://complexity-analyzer-theta.vercel.app/?utm_source=chatgpt.com)
 
 ---
 
-## 🧠 Pattern Recognition Engine
+## ✨ Features
 
-Automatically detects:
-
-### Iterative Patterns
-- Single loops → `O(n)`
-- Nested loops → `O(n²)`, `O(n³)`
-
-### Logarithmic Patterns
-- Binary Search
-- Geometric loop progression
-- Halving strategies
-
-### Recursive Patterns
-- Linear Recursion
-- Binary Recursion
-- Divide & Conquer
-- Exponential Recursion
-
-### Advanced Algorithms
-- Sliding Window
-- Two Pointers
-- BFS / DFS
-- Dynamic Programming
-- Backtracking
-- Queue Amortization
+* ⚡ Instant offline static analysis
+* 🧠 Pattern detection engine
+* 📊 Complexity visualization bars
+* 🔍 Recurrence relation detection
+* 🌲 DFS / BFS recognition
+* 🔀 Divide & Conquer analysis
+* 🪟 Sliding Window detection
+* 🔍 Binary Search detection
+* 📏 Loop nesting analysis
+* 📦 Space complexity estimation
+* 🎨 Modern cyberpunk-inspired UI
+* 🌐 Works entirely in-browser
+* 🚫 No backend required
 
 ---
 
-# 🔬 How It Works
-
-## 1. Symbolic Parsing Layer
-
-The engine scans code structure using:
-- loop detection
-- recursion mapping
-- nesting analysis
-- control-flow inspired traversal
-
-Instead of a full compiler AST, ComplexiScan uses a lightweight:
-> **Control Flow Tree (CFT)** inspired parser
-
-for maximum speed and low memory usage.
-
----
-
-## 2. Rule-Based Complexity Engine
-
-The analysis engine applies deterministic rules such as:
-
-### Loop Rules
-```js
-for(let i = 0; i < n; i++)
-```
-
-→ `O(n)`
-
-### Nested Loops
-```js
-for(i)
-  for(j)
-```
-
-→ `O(n²)`
-
-### Logarithmic Detection
-```js
-i *= 2
-```
-
-→ `O(log n)`
-
-### Recurrence Detection
-```js
-fib(n-1) + fib(n-2)
-```
-
-→ `O(2ⁿ)`
-
----
-
-# 🎨 UI Philosophy
-
-ComplexiScan follows a:
-> **Geometric Balance Design System**
-
-Inspired by:
-- modern IDEs
-- diagnostic terminals
-- compiler tooling
-
-### UI Features
-- Monochrome cyber aesthetic
-- Real-time analysis feedback
-- Syntax-aware visualization
-- Complexity scale indicator
-- Interactive analysis trace
-
----
-
-# 📊 Analysis Output
+## 📸 Preview
 
 The analyzer provides:
 
-- Time Complexity
-- Space Complexity
-- Detected Algorithmic Patterns
-- Complexity Explanation
-- Internal Analysis Trace
+* Interactive code editor
+* Multi-language support
+* Real-time complexity reports
+* Explanation cards
+* Pattern trace logs
+* Visual complexity indicators
 
 ---
 
-# 🔒 Privacy First
+## 🛠 Supported Languages
 
-ComplexiScan is fully offline.
-
-✅ No cloud APIs  
-✅ No telemetry  
-✅ No external processing  
-✅ Your code never leaves the browser
+* C++
+* Java
+* Python
+* JavaScript
 
 ---
 
-# ⚡ Performance
+## 🧩 Detected Algorithmic Patterns
 
-Optimized for speed:
-- Sub-100ms analysis
-- Lightweight parser
-- Low memory usage
-- Zero backend dependency
-
----
-
-# 🛠️ Tech Stack
-
-| Technology | Purpose |
-|---|---|
-| HTML5 | Structure |
-| CSS3 | UI Design |
-| Vanilla JavaScript | Analysis Engine |
-| Symbolic Parsing | Structural Analysis |
-| Rule Engine | Complexity Inference |
+| Pattern             | Detection |
+| ------------------- | --------- |
+| Binary Search       | ✅         |
+| BFS                 | ✅         |
+| DFS                 | ✅         |
+| Sliding Window      | ✅         |
+| Two Pointer         | ✅         |
+| Dynamic Programming | ✅         |
+| Divide and Conquer  | ✅         |
+| Linear Recursion    | ✅         |
+| Binary Recursion    | ✅         |
+| Backtracking        | ✅         |
+| Nested Loops        | ✅         |
 
 ---
 
-# 📂 Project Structure
+## 🚀 How It Works
 
-```bash
-ComplexiScan/
-│
-├── complexity-analyzer.html
-├── README.md
-└── assets/
-```
+The engine performs deterministic static analysis by:
+
+1. Tokenizing source code
+2. Extracting lightweight structural information
+3. Detecting:
+
+   * loops
+   * recursion
+   * recursion depth
+   * graph traversal patterns
+   * DP structures
+4. Estimating:
+
+   * best-case complexity
+   * average-case complexity
+   * worst-case complexity
+   * auxiliary space
+5. Rendering a visual report
 
 ---
 
-# 🚀 Getting Started
-
-## Prerequisites
-
-- Modern Browser
-- Optional: Node.js (for local hosting)
-
----
-
-## Run Locally
-
-Simply open:
+## 📂 Project Structure
 
 ```bash
 complexity-analyzer.html
 ```
 
-in your browser.
+Everything is self-contained in a single HTML file:
+
+* UI
+* Styles
+* Analysis engine
+* Pattern detector
+* Complexity calculator
 
 ---
 
-## Optional Local Server
+## ▶️ Usage
+
+### Run Locally
+
+Simply open the HTML file in your browser:
 
 ```bash
-npm install
-npm run dev
+double-click complexity-analyzer.html
+```
+
+or
+
+```bash
+open complexity-analyzer.html
 ```
 
 ---
 
-# 🧪 Example Supported Algorithms
+## 🌐 Deployment
 
-## Binary Search
-```js
-while(left <= right)
+The project is deployed on Vercel:
+
+[Live Production Deployment](https://complexity-analyzer-theta.vercel.app/?utm_source=chatgpt.com)
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut     | Action             |
+| ------------ | ------------------ |
+| Ctrl + Enter | Run analysis       |
+| Tab          | Insert indentation |
+
+---
+
+## 📊 Example Algorithms Included
+
+* Quick Sort
+* Merge Sort
+* Binary Search
+* BFS
+* DFS
+* Fibonacci
+* Sliding Window
+* Bubble Sort
+* Factorial
+
+---
+
+## 🧠 Complexity Examples
+
+### Binary Search
+
+```cpp
+while(low <= high) {
+    int mid = low + (high - low) / 2;
+}
 ```
 
-→ `O(log n)`
-
----
-
-## Sliding Window
-```js
-for(let i = k; i < arr.length; i++)
-```
-
-→ `O(n)`
-
----
-
-## Merge Sort
-```js
-T(n)=2T(n/2)+O(n)
-```
-
-→ `O(n log n)`
-
----
-
-## Fibonacci Recursion
-```js
-fib(n-1)+fib(n-2)
-```
-
-→ `O(2ⁿ)`
-
----
-
-# 🧠 Design Philosophy
-
-> “Static analysis should be deterministic, explainable, and fast.”
-
-ComplexiScan behaves like a lightweight compiler analysis system rather than an AI prediction tool.
-
-The engine focuses on:
-- correctness
-- transparency
-- speed
-- deterministic reasoning
-
----
-
-# 🎯 Future Roadmap
-
-- Full AST integration
-- CFG visualization
-- Cyclomatic complexity metrics
-- VS Code extension
-- WebAssembly optimization
-- Memory profiling
-- Competitive programming mode
-
----
-
-# 🤝 Contributing
-
-Contributions are welcome.
-
-Possible improvements:
-- More language support
-- Better recursion modeling
-- Advanced CFG analysis
-- UI enhancements
-- Additional algorithm detection rules
-
----
-
-# 📜 License
-
-Licensed under the Apache License 2.0
+Detected Complexity:
 
 ```text
-Copyright 2026 ComplexiScan
-
-Licensed under the Apache License, Version 2.0
-http://www.apache.org/licenses/LICENSE-2.0
+O(log n)
 ```
 
 ---
 
-# ⭐ Final Note
+### Merge Sort
 
-ComplexiScan proves that:
-> deterministic static complexity analysis can be fast, reliable, and completely offline.
+Recurrence:
 
-No AI.
-No cloud.
-Just pure structural analysis.
+```text
+T(n) = 2T(n/2) + O(n)
+```
 
-## 🚀 Live Website
+Solved Complexity:
 
-🔗 https://complexity-analyzer-theta.vercel.app/
+```text
+O(n log n)
+```
+
+---
+
+### Naive Fibonacci
+
+Recurrence:
+
+```text
+T(n) = 2T(n-1) + O(1)
+```
+
+Solved Complexity:
+
+```text
+O(2^n)
+```
+
+---
+
+## 🎨 UI Highlights
+
+* Cyberpunk-inspired design
+* Animated complexity bars
+* Glassmorphism panels
+* Monospace code editor
+* Responsive layout
+* Real-time analysis rendering
+
+---
+
+## 🔬 Static Analysis Capabilities
+
+The analyzer can infer:
+
+* logarithmic loops
+* nested iteration depth
+* recursion branching
+* divide-and-conquer structures
+* queue/stack traversal
+* amortized traversal patterns
+* recursive sorting behavior
+
+---
+
+## ⚠️ Limitations
+
+This is a heuristic static analyzer, not a compiler.
+
+It may not perfectly analyze:
+
+* highly obfuscated code
+* meta-programming
+* advanced templates/macros
+* dynamic runtime behavior
+* unconventional syntax
+
+---
+
+## 🏗 Tech Stack
+
+* HTML5
+* CSS3
+* Vanilla JavaScript
+
+No frameworks. No dependencies.
+
+---
+
+## 🌟 Future Improvements
+
+* AST parser integration
+* Syntax highlighting
+* Cyclomatic complexity
+* Memory profiling
+* AI-assisted explanations
+* More language support
+* Exportable reports
+* Live editor collaboration
+
+---
+
+## 📄 License
+
+Apache License
+
+---
+
+## 👨‍💻 Author
+
+Built as a deterministic static analysis engine for algorithmic complexity estimation.
