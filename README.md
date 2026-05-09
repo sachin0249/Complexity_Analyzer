@@ -275,7 +275,7 @@ No frameworks. No dependencies.
 
 ## 📄 License
 
-Apache License
+Apache-2.0 License
 
 ---
 
